@@ -1,31 +1,8 @@
-const fs = require('fs');
+import fs from 'fs';
+import { generateTextUchange } from './ollama.js';
 
 // Chemin vers le fichier JSON
 const filePath = 'test.json';
-
-const OLLAMA_BASE_URL = 'http://localhost:11434/api';
-
-const generateText = async (data) => {
-    try {
-      const response = await fetch(OLLAMA_BASE_URL+"/generate", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-  
-      if (!response.ok) {
-        throw new Error('Error generating text');
-      }
-  
-      const generatedText = await response.json();
-      // Faites quelque chose avec le texte généré ici
-      return generatedText;
-    } catch (error) {
-      console.error('Error:', error);
-    }
-}
 
 // Fonction pour lire et traiter le fichier JSON
 fs.readFile(filePath, 'utf8', async (err, data) => {
@@ -38,27 +15,27 @@ fs.readFile(filePath, 'utf8', async (err, data) => {
     // Analyser le contenu JSON en un tableau d'objets
     const jsonContent = data.split('\n').filter(line => line.trim() !== '').map(JSON.parse);
 
-    // Ajouter la clé `response` à chaque objet
-    const data = {
-        model: model,
-        prompt: prompt,
-        stream: stream
-    };
-  
-    const result = await generateText(data);
+    const modifiedData = jsonContent.map(async (obj) => {
+      const data = {
+        model: "mistral",
+        prompt: obj.website_desc + obj.value_proposition_en + obj.value_proposition_fr,
+        stream: false
+      };
+      const response = await generateTextUchange(data)
+      console.log("En cours", response.response);
+      return { ...obj, response: response.response };
+    });
 
-    const modifiedData = jsonContent.map(obj => ({ ...obj, response: 'valeur_de_response' }));
+    Promise.all(modifiedData).then(async (modifiedData) => {
+      // Convertir les objets modifiés en JSON
+      const jsonData = modifiedData.map(obj => JSON.stringify(obj)).join('\n');
 
-    // Convertir les objets modifiés en JSON
-    const jsonData = modifiedData.map(obj => JSON.stringify(obj)).join('\n');
-
-    // Enregistrer les modifications dans le fichier
-    fs.writeFile(filePath, jsonData, 'utf8', err => {
-      if (err) {
-        console.error('Erreur lors de l\'enregistrement du fichier :', err);
-        return;
-      }
+      // Enregistrer les modifications dans le fichier
+      await fs.writeFile(filePath, jsonData, 'utf8');
       console.log('Les modifications ont été enregistrées avec succès.');
+    })
+    .catch(err => {
+      console.error('Erreur lors de l\'enregistrement du fichier :', err);
     });
   } catch (error) {
     console.error('Erreur lors du traitement du fichier JSON :', error);
