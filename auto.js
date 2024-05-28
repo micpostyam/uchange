@@ -15,14 +15,14 @@ fs.readFile(filePath, 'utf8', async (err, data) => {
     // Analyser le contenu JSON en un tableau d'objets
     const jsonContent = data.split('\n').filter(line => line.trim() !== '').map(JSON.parse);
 
-    const modifiedData = jsonContent.map(async (obj) => {
+    const modifiedData = jsonContent.map(async (obj, index) => {
       const data = {
         model: "mistral",
         prompt: obj.website_desc + obj.value_proposition_en + obj.value_proposition_fr,
         stream: false
       };
       const response = await generateTextUchange(data)
-      console.log("En cours", response.response);
+      console.log("En cours", index, response.response);
       return { ...obj, response: response.response };
     });
 
@@ -31,7 +31,7 @@ fs.readFile(filePath, 'utf8', async (err, data) => {
       const jsonData = modifiedData.map(obj => JSON.stringify(obj)).join('\n');
 
       // Enregistrer les modifications dans le fichier
-      await fs.writeFile(filePath, jsonData, 'utf8');
+      await fs.promises.writeFile(filePath, jsonData, 'utf8');
       console.log('Les modifications ont été enregistrées avec succès.');
     })
     .catch(err => {
