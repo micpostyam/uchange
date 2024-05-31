@@ -1,7 +1,7 @@
 import fs from 'fs';
 
 // Lire le contenu du fichier JSON
-const inputFilename = 'mistral.json';
+const inputFilename = 'mistralv1.json';
 
 const correctedJson = (data) => {
     let line = "{}"
